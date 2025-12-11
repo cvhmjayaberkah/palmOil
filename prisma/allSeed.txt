@@ -1,0 +1,61 @@
+import { PrismaClient } from "@prisma/client";
+import { seedUsers } from "./seeds/seedUsers";
+import { seedCustomers } from "./seeds/seedCustomers";
+import { seedStores } from "./seeds/seedStores";
+import { seedCategoriesAndProducts } from "./seeds/seedCategoriesAndProducts";
+import { seedOrders } from "./seeds/seedOrders";
+import { seedPurchaseOrders } from "./seeds/seedPurchaseOrders";
+import { seedPurchaseOrderItems } from "./seeds/seedPurchaseOrderItems";
+import { seedInvoices } from "./seeds/seedInvoices";
+import { seedInvoiceItems } from "./seeds/seedInvoiceItems";
+import { seedPayments } from "./seeds/seedPayments";
+import { seedDeliveryNotes } from "./seeds/seedDeliveryNotes";
+import { seedDeliveryNoteItems } from "./seeds/seedDeliveryNoteItems";
+
+const prisma = new PrismaClient();
+
+async function main() {
+
+  try {
+    // Seed in order of dependencies
+    // 1. Base entities (no foreign keys)
+    const createdUsers = await seedUsers(prisma);
+    const createdCustomers = await seedCustomers(prisma);
+    await seedStores(prisma);
+    const createdProducts = await seedCategoriesAndProducts(prisma);
+
+    // Find specific users for seeding
+    const salesUser = createdUsers.find(user => user.role === "SALES") || createdUsers[0];
+
+    // 2. Orders (depends on users, customers, products)
+    const createdOrders = await seedOrders(prisma, createdCustomers, createdProducts, salesUser);
+
+    // 3. Purchase Orders (depends on users, orders)
+    const createdPurchaseOrders = await seedPurchaseOrders(prisma, createdUsers, createdOrders);
+    await seedPurchaseOrderItems(prisma, createdProducts, createdPurchaseOrders);
+
+    // 4. Invoices (depends on purchase orders, customers, users)
+    const createdInvoices = await seedInvoices(prisma, createdUsers, createdCustomers, createdPurchaseOrders);
+    await seedInvoiceItems(prisma, createdProducts, createdInvoices);
+
+    // 5. Payments (depends on invoices, users)
+    await seedPayments(prisma, createdUsers, createdInvoices);
+
+    // 6. Delivery Notes (depends on customers, invoices, users)
+    const createdDeliveryNotes = await seedDeliveryNotes(prisma, createdUsers, createdCustomers, createdInvoices);
+    await seedDeliveryNoteItems(prisma, createdProducts, createdDeliveryNotes, createdUsers);
+
+  } catch (error) {
+    console.error("❌ Error during seeding:", error);
+    throw error;
+  }
+}
+
+main()
+  .catch((e) => {
+    console.error("❌ Seeding failed:", e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

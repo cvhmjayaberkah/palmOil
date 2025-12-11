@@ -1,0 +1,1001 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Categories {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  code        String     @unique
+  products    Products[]
+
+  @@map("categories")
+}
+
+model Store {
+  id          String       @id @default(cuid())
+  name        String
+  address     String
+  city        String?
+  phone       String?
+  latitude    Float?
+  longitude   Float?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  fieldVisits FieldVisit[]
+
+  @@map("stores")
+}
+
+model Customers {
+  id             String           @id @default(cuid())
+  name           String
+  email          String?
+  phone          String?
+  address        String
+  city           String
+  latitude       Float?
+  longitude      Float?
+  creditLimit    Float            @default(0)
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  code           String           @unique
+  credit_notes   credit_notes[]
+  customerVisits CustomerVisits[]
+  deliveryNotes  DeliveryNotes[]
+  fieldVisits    FieldVisit[]
+  invoices       Invoices[]
+  orders         Orders[]
+
+  @@map("customers")
+}
+
+model Products {
+  id                   String                 @id @default(cuid())
+  name                 String
+  description          String?
+  unit                 String
+  price                Float
+  cost                 Float
+  minStock             Int                    @default(0)
+  currentStock         Int                    @default(0)
+  bottlesPerCrate      Int                    @default(24)
+  isActive             Boolean                @default(true)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  categoryId           String
+  code                 String                 @unique
+  sellingPrice         Float?
+  taxId                String?
+  salaryPerBottle      Float                  @default(0)
+  credit_note_lines    credit_note_lines[]
+  invoiceItems         InvoiceItems[]
+  ManagementStockItems ManagementStockItems[]
+  orderItems           OrderItems[]
+  ProductionItems      ProductionItems[]
+  category             Categories             @relation(fields: [categoryId], references: [id])
+  tax                  Taxs?                  @relation(fields: [taxId], references: [id])
+  PurchaseOrderItems   PurchaseOrderItems[]
+  salesReturnItems     SalesReturnItems[]
+  stockMovements       StockMovements[]
+  stockOpnameItems     StockOpnameItems[]
+  oldSwapItems         SwapDetails[]          @relation("OldSwapItem")
+  replacementSwapItems SwapDetails[]          @relation("ReplacementSwapItem")
+
+  @@map("products")
+}
+
+model Users {
+  id                    String              @id @default(cuid())
+  email                 String              @unique
+  name                  String
+  password              String
+  role                  UserRole            @default(SALES)
+  phone                 String?
+  address               String?
+  isActive              Boolean             @default(true)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  customerVisits        CustomerVisits[]
+  deliveries            Deliveries[]
+  deliveryNotes         DeliveryNotes[]
+  ExpensesCreated       Expenses[]          @relation("ExpenseCreator")
+  ExpensesUpdated       Expenses[]          @relation("ExpenseUpdater")
+  fieldVisits           FieldVisit[]
+  InvoicesCanceled      Invoices[]          @relation("InvoiceCanceler")
+  InvoicesCreated       Invoices[]          @relation("InvoiceCreator")
+  InvoicesUpdated       Invoices[]          @relation("InvoiceUpdater")
+  ManagementStocks      ManagementStocks[]
+  orders                Orders[]
+  Payments              Payments[]
+  Productions           Productions[]
+  PurchaseOrders        PurchaseOrders[]    @relation("CreatedPurchaseOrders")
+  stockConfirmations    PurchaseOrders[]    @relation("StockConfirmationUser")
+  processedSalesReturns SalesReturns[]      @relation("AdminProcessor")
+  requestedSalesReturns SalesReturns[]      @relation("SalesRequester")
+  salesTargets          SalesTargets[]
+  stockMovements        StockMovements[]
+  stockOpnames          StockOpnames[]
+  transactions          Transactions[]
+  userNotifications     UserNotifications[]
+  createdSwaps          Swaps[]             @relation("SwapCreator")
+
+  @@map("users")
+}
+
+model SalesTargets {
+  id             String     @id @default(cuid())
+  userId         String
+  targetType     TargetType @default(MONTHLY)
+  targetPeriod   String
+  targetAmount   Float
+  achievedAmount Float      @default(0)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  user           Users      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetPeriod])
+  @@map("sales_targets")
+}
+
+model CompanyTargets {
+  id             String     @id @default(cuid())
+  targetType     TargetType @default(MONTHLY)
+  targetPeriod   String
+  targetAmount   Float
+  achievedAmount Float      @default(0)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([targetPeriod, targetType])
+  @@map("company_targets")
+}
+
+model PurchaseOrders {
+  id                      String                  @id @default(cuid())
+  poDate                  DateTime                @default(now())
+  status                  PurchaseOrderStatus     @default(PENDING)
+  notes                   String?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  creatorId               String
+  dateline                DateTime                @default(now())
+  code                    String                  @unique
+  totalAmount             Float                   @default(0)
+  dateStockConfirmation   DateTime?
+  notesStockConfirmation  String?
+  statusStockConfirmation StockConfirmationStatus @default(WAITING_CONFIRMATION)
+  userStockConfirmationId String?
+  orderId                 String
+  orderLevelDiscount      Float                   @default(0)
+  orderLevelDiscountType  DiscountValueType       @default(AMOUNT)
+  paymentDeadline         DateTime?
+  paymentMethod           String?
+  shippingCost            Float                   @default(0)
+  taxPercentage           Float                   @default(0)
+  totalDiscount           Float                   @default(0)
+  totalPayment            Float                   @default(0)
+  totalTax                Float                   @default(0)
+  taxAmount               Float                   @default(0)
+  invoices                Invoices?
+  items                   PurchaseOrderItems[]
+  creator                 Users                   @relation("CreatedPurchaseOrders", fields: [creatorId], references: [id])
+  order                   Orders                  @relation(fields: [orderId], references: [id])
+  stockConfirmationUser   Users?                  @relation("StockConfirmationUser", fields: [userStockConfirmationId], references: [id])
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItems {
+  id              String            @id @default(cuid())
+  quantity        Float
+  purchaseOrderId String
+  productId       String
+  price           Float             @default(0)
+  totalPrice      Float             @default(0)
+  discount        Float             @default(0)
+  discountType    DiscountValueType @default(AMOUNT)
+  product         Products          @relation(fields: [productId], references: [id])
+  purchaseOrder   PurchaseOrders    @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_order_items")
+}
+
+model Orders {
+  id                   String           @id @default(cuid())
+  orderNumber          String           @unique
+  orderDate            DateTime         @default(now())
+  deliveryDate         DateTime?
+  status               OrderStatus      @default(NEW)
+  totalAmount          Float            @default(0)
+  notes                String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  customerId           String
+  salesId              String
+  adminNotes           String?
+  canceledAt           DateTime?
+  completedAt          DateTime?
+  confirmedAt          DateTime?
+  confirmedBy          String?
+  requiresConfirmation Boolean          @default(false)
+  deliveryAddress      String
+  deliveryCity         String?
+  deliveryNotesOrder   String?
+  deliveryPostalCode   String?
+  discount             Float            @default(0)
+  shippingCost         Float            @default(0)
+  dueDate              DateTime
+  discountType         DiscountType?    @default(OVERALL)
+  paymentDeadline      DateTime?
+  paymentType          PaymentType      @default(IMMEDIATE)
+  discountUnit         DiscountUnit     @default(AMOUNT)
+  totalDiscount        Float            @default(0)
+  subtotal             Float            @default(0)
+  orderItems           OrderItems[]
+  customer             Customers        @relation(fields: [customerId], references: [id])
+  sales                Users            @relation(fields: [salesId], references: [id])
+  purchaseOrders       PurchaseOrders[]
+  salesReturns         SalesReturns[]
+  StockMovements       StockMovements[]
+
+  @@map("orders")
+}
+
+model OrderItems {
+  id           String        @id @default(cuid())
+  quantity     Float
+  price        Float
+  totalPrice   Float
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  orderId      String
+  productId    String
+  discount     Float         @default(0)
+  discountType DiscountUnit? @default(AMOUNT)
+  orders       Orders        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  products     Products      @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model DeliveryNotes {
+  id                 String    @id @default(cuid())
+  code               String    @unique
+  deliveryDate       DateTime  @default(now())
+  driverName         String
+  vehicleNumber      String
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  customerId         String
+  warehouseUserId    String
+  deliveryAddress    String?
+  deliveryCity       String?
+  deliveryPostalCode String?
+  invoiceId          String    @unique
+  customers          Customers @relation(fields: [customerId], references: [id])
+  invoices           Invoices  @relation(fields: [invoiceId], references: [id])
+  users              Users     @relation(fields: [warehouseUserId], references: [id])
+
+  @@map("delivery_notes")
+}
+
+model Invoices {
+  id                String            @id @default(cuid())
+  code              String            @unique
+  invoiceDate       DateTime          @default(now())
+  dueDate           DateTime?
+  status            InvoiceStatus     @default(DRAFT)
+  subtotal          Float             @default(0)
+  tax               Float             @default(0)
+  totalAmount       Float             @default(0)
+  paidAmount        Float             @default(0)
+  remainingAmount   Float             @default(0)
+  notes             String?
+  customerId        String?
+  discount          Float             @default(0)
+  discountType      DiscountValueType @default(AMOUNT)
+  actualDiscount    Float             @default(0)
+  paymentStatus     PaymentStatus     @default(UNPAID)
+  updatedBy         String?
+  purchaseOrderId   String?           @unique
+  shippingCost      Float             @default(0)
+  taxPercentage     Float             @default(0)
+  type              InvoiceType       @default(PRODUCT)
+  statusPreparation PreparationStatus @default(WAITING_PREPARATION)
+  useDeliveryNote   Boolean           @default(false)
+  allowRedelivery   Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  createdBy         String?
+  cancelReason      String?
+  canceledAt        DateTime?
+  canceledBy        String?
+  isCanceled        Boolean           @default(false)
+  taxAmount         Float             @default(0)
+  credit_notes      credit_notes[]
+  deliveries        Deliveries[]
+  delivery_notes    DeliveryNotes?
+  invoiceItems      InvoiceItems[]
+  canceler          Users?            @relation("InvoiceCanceler", fields: [canceledBy], references: [id])
+  creator           Users?            @relation("InvoiceCreator", fields: [createdBy], references: [id])
+  customer          Customers?        @relation(fields: [customerId], references: [id])
+  purchaseOrder     PurchaseOrders?   @relation(fields: [purchaseOrderId], references: [id])
+  updater           Users?            @relation("InvoiceUpdater", fields: [updatedBy], references: [id])
+  payments          Payments[]
+  salesReturns      SalesReturns[]
+  swaps             Swaps[]
+
+  @@map("invoices")
+}
+
+model InvoiceItems {
+  id                String              @id @default(cuid())
+  quantity          Float
+  price             Float
+  totalPrice        Float
+  finalPrice        Float               @default(0)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  invoiceId         String
+  productId         String
+  discount          Float               @default(0)
+  discountType      DiscountValueType   @default(AMOUNT)
+  credit_note_lines credit_note_lines[]
+  deliveryItems     DeliveryItems[]
+  invoices          Invoices            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  products          Products            @relation(fields: [productId], references: [id])
+
+  @@map("invoice_items")
+}
+
+model Payments {
+  paymentDate       DateTime      @default(now())
+  amount            Float
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  invoiceId         String
+  id                String        @id @default(cuid())
+  method            PaymentMethod
+  reference         String?
+  paymentCode       String        @unique
+  proofUrl          String?
+  status            PaidStatus    @default(PENDING)
+  userId            String
+  namaBankPenerbit  String?
+  namaPenerima      String?
+  namaPengirim      String?
+  nomorCek          String?
+  rekeningPenerima  String?
+  rekeningPengirim  String?
+  tanggalCek        DateTime?
+  tanggalJatuhTempo DateTime?
+  invoice           Invoices      @relation(fields: [invoiceId], references: [id])
+  user              Users         @relation(fields: [userId], references: [id])
+
+  @@map("payments")
+}
+
+model Transactions {
+  id               String             @id @default(cuid())
+  transactionDate  DateTime           @default(now())
+  type             TransactionType
+  amount           Float
+  description      String
+  category         String
+  reference        String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  userId           String?
+  transactionItems TransactionItems[]
+  user             Users?             @relation(fields: [userId], references: [id])
+
+  @@map("transactions")
+}
+
+model TransactionItems {
+  id            String       @id @default(cuid())
+  description   String
+  quantity      Float
+  price         Float
+  totalPrice    Float
+  transactionId String
+  transaction   Transactions @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("transaction_items")
+}
+
+model StockMovements {
+  id                     String                @id @default(cuid())
+  movementDate           DateTime              @default(now())
+  type                   StockMovementType
+  quantity               Float
+  previousStock          Int
+  newStock               Int
+  reference              String?
+  notes                  String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  productId              String
+  userId                 String
+  ordersId               String?
+  ManagementStockItemsId String?
+  stockOpnameItemId      String?
+  productionItemsId      String?
+  swapId                 String?
+  managementStockItemId  ManagementStockItems? @relation(fields: [ManagementStockItemsId], references: [id])
+  orderId                Orders?               @relation(fields: [ordersId], references: [id])
+  products               Products              @relation(fields: [productId], references: [id])
+  productionLogItemId    ProductionItems?      @relation(fields: [productionItemsId], references: [id])
+  stockOpnameItem        StockOpnameItems?     @relation(fields: [stockOpnameItemId], references: [id], onDelete: Cascade)
+  users                  Users                 @relation(fields: [userId], references: [id])
+  swap                   Swaps?                @relation(fields: [swapId], references: [id])
+
+  @@map("stock_movements")
+}
+
+model StockOpnames {
+  id               String             @id @default(cuid())
+  opnameDate       DateTime           @default(now())
+  status           OpnameStatus       @default(RECONCILED)
+  notes            String?
+  conductedById    String
+  code             String             @unique
+  ManagementStocks ManagementStocks[]
+  stockOpnameItems StockOpnameItems[]
+  conductedBy      Users              @relation(fields: [conductedById], references: [id])
+
+  @@map("stock_opnames")
+}
+
+model StockOpnameItems {
+  id             String           @id @default(cuid())
+  systemStock    Int
+  physicalStock  Int
+  difference     Int
+  opnameId       String
+  productId      String
+  notes          String?
+  StockMovements StockMovements[]
+  stockOpname    StockOpnames     @relation(fields: [opnameId], references: [id], onDelete: Cascade)
+  product        Products         @relation(fields: [productId], references: [id])
+
+  @@map("stock_opname_items")
+}
+
+model SalesReturns {
+  id               String             @id @default(cuid())
+  returnDate       DateTime           @default(now())
+  reason           String
+  status           ReturnStatus       @default(REQUESTED)
+  notes            String?
+  orderId          String?
+  invoiceId        String
+  requesterId      String
+  processorId      String?
+  salesReturnItems SalesReturnItems[]
+  invoice          Invoices           @relation(fields: [invoiceId], references: [id])
+  order            Orders?            @relation(fields: [orderId], references: [id])
+  processor        Users?             @relation("AdminProcessor", fields: [processorId], references: [id])
+  requester        Users              @relation("SalesRequester", fields: [requesterId], references: [id])
+
+  @@map("sales_returns")
+}
+
+model SalesReturnItems {
+  id          String       @id @default(cuid())
+  quantity    Float
+  returnId    String
+  productId   String
+  product     Products     @relation(fields: [productId], references: [id])
+  salesReturn SalesReturns @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@map("sales_return_items")
+}
+
+model Productions {
+  id             String            @id @default(cuid())
+  productionDate DateTime          @default(now())
+  status         ProductionStatus  @default(COMPLETED)
+  notes          String?
+  producedById   String
+  code           String            @unique
+  items          ProductionItems[]
+  producedBy     Users             @relation(fields: [producedById], references: [id])
+
+  @@map("production_logs")
+}
+
+model ProductionItems {
+  id              String           @id @default(cuid())
+  quantity        Float
+  productionLogId String
+  productId       String
+  notes           String?
+  product         Products         @relation(fields: [productId], references: [id])
+  productionLog   Productions      @relation(fields: [productionLogId], references: [id], onDelete: Cascade)
+  StockMovements  StockMovements[]
+
+  @@map("production_log_items")
+}
+
+model ManagementStocks {
+  id             String                 @id @default(cuid())
+  managementDate DateTime               @default(now())
+  notes          String?
+  producedById   String
+  status         ManagementStockStatus  @default(IN)
+  stockOpnameId  String?
+  code           String                 @unique
+  items          ManagementStockItems[]
+  producedBy     Users                  @relation(fields: [producedById], references: [id])
+  stockOpname    StockOpnames?          @relation(fields: [stockOpnameId], references: [id], onDelete: Cascade)
+
+  @@map("management_stocks")
+}
+
+model ManagementStockItems {
+  id                String           @id @default(cuid())
+  quantity          Float
+  managementStockId String
+  productId         String
+  stockOpnamesId    String?
+  notes             String?
+  managementStock   ManagementStocks @relation(fields: [managementStockId], references: [id], onDelete: Cascade)
+  product           Products         @relation(fields: [productId], references: [id])
+  StockMovements    StockMovements[]
+
+  @@map("management_stock_items")
+}
+
+model FieldVisit {
+  id           String     @id @default(cuid())
+  customerId   String?
+  storeId      String?
+  storeName    String?
+  storeAddress String?
+  visitDate    DateTime   @default(now())
+  checkInTime  DateTime   @default(now())
+  checkOutTime DateTime?
+  latitude     Float
+  longitude    Float
+  photos       String[]   @default([])
+  notes        String?
+  visitPurpose String
+  result       String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  salesId      String
+  sales        Users      @relation(fields: [salesId], references: [id], onDelete: Cascade)
+  customer     Customers? @relation(fields: [customerId], references: [id])
+  store        Store?     @relation(fields: [storeId], references: [id])
+
+  @@map("field_visits")
+}
+
+model CustomerVisits {
+  id         String    @id @default(cuid())
+  visitDate  DateTime  @default(now())
+  latitude   Float
+  longitude  Float
+  notes      String?
+  photoUrl   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  customerId String
+  salesId    String
+  customers  Customers @relation(fields: [customerId], references: [id])
+  users      Users     @relation(fields: [salesId], references: [id])
+
+  @@map("customer_visits")
+}
+
+model Settings {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model Notifications {
+  id                String              @id @default(cuid())
+  title             String
+  message           String
+  type              String
+  isGlobal          Boolean             @default(false)
+  isRead            Boolean             @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  userNotifications UserNotifications[]
+
+  @@map("notifications")
+}
+
+model UserNotifications {
+  id             String        @id @default(cuid())
+  isRead         Boolean       @default(false)
+  readAt         DateTime?
+  createdAt      DateTime      @default(now())
+  userId         String
+  notificationId String
+  notifications  Notifications @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  users          Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationId])
+  @@map("user_notifications")
+}
+
+model Taxs {
+  id        String     @id @default(cuid())
+  nominal   String
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  isActive  Boolean    @default(false)
+  products  Products[]
+
+  @@map("taxes")
+}
+
+model Expenses {
+  id            String            @id @default(cuid())
+  code          String            @unique
+  expenseDate   DateTime          @default(now())
+  dueDate       DateTime?
+  status        InvoiceStatus     @default(DRAFT)
+  subtotal      Float             @default(0)
+  tax           Float             @default(0)
+  taxPercentage Float             @default(0)
+  discount      Float             @default(0)
+  discountType  DiscountValueType @default(AMOUNT)
+  shippingCost  Float             @default(0)
+  totalAmount   Float             @default(0)
+  notes         String?
+  createdBy     String?
+  updatedBy     String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  expenseItems  ExpenseItems[]
+  creator       Users?            @relation("ExpenseCreator", fields: [createdBy], references: [id])
+  updater       Users?            @relation("ExpenseUpdater", fields: [updatedBy], references: [id])
+
+  @@map("expenses")
+}
+
+model ExpenseItems {
+  id           String            @id @default(cuid())
+  description  String
+  quantity     Float
+  price        Float
+  discount     Float             @default(0)
+  discountType DiscountValueType @default(AMOUNT)
+  totalPrice   Float
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  expenseId    String
+  expense      Expenses          @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@map("expense_items")
+}
+
+model Deliveries {
+  id            String          @id @default(cuid())
+  code          String          @unique
+  invoiceId     String
+  helperId      String
+  deliveryDate  DateTime        @default(now())
+  status        DeliveryStatus  @default(PENDING)
+  completedAt   DateTime?
+  notes         String?
+  returnReason  String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  swapId        String? // Optional foreign key to Swaps
+  helper        Users           @relation(fields: [helperId], references: [id])
+  invoice       Invoices        @relation(fields: [invoiceId], references: [id])
+  swap          Swaps?          @relation(fields: [swapId], references: [id])
+  deliveryItems DeliveryItems[]
+
+  @@map("deliveries")
+}
+
+model DeliveryItems {
+  id                String             @id @default(cuid())
+  deliveryId        String
+  invoiceItemId     String?
+  quantityToDeliver Float
+  quantityDelivered Float              @default(0)
+  quantityReturned  Float              @default(0)
+  status            DeliveryItemStatus @default(PENDING)
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  delivery          Deliveries         @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  invoiceItem       InvoiceItems?      @relation(fields: [invoiceItemId], references: [id], onDelete: SetNull)
+
+  @@unique([deliveryId, invoiceItemId])
+  @@map("delivery_items")
+}
+
+model CompanyProfiles {
+  id                 String   @id @default(cuid())
+  name               String
+  address            String
+  city               String
+  phone              String?
+  owner              String
+  bankAccountNumber  String
+  bankAccountNumber2 String?
+  accountType1       String   @default("BCA")
+  accountType2       String?
+  accountHolderName1 String?
+  accountHolderName2 String?
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  code               String   @unique
+
+  @@map("company_profiles")
+}
+
+model credit_note_lines {
+  id            String       @id
+  creditNoteId  String
+  invoiceLineId String
+  productId     String?
+  qty           Float
+  unitPrice     Float
+  discount      Float        @default(0)
+  taxRate       Float        @default(0)
+  lineTotal     Float
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime
+  credit_notes  credit_notes @relation(fields: [creditNoteId], references: [id], onDelete: Cascade)
+  invoice_items InvoiceItems @relation(fields: [invoiceLineId], references: [id])
+  products      Products?    @relation(fields: [productId], references: [id])
+}
+
+model credit_notes {
+  id                String              @id
+  creditNoteNo      String              @unique
+  creditNoteDate    DateTime            @default(now())
+  customerId        String
+  invoiceId         String
+  subtotal          Float               @default(0)
+  taxAmount         Float               @default(0)
+  total             Float               @default(0)
+  status            CreditNoteStatus    @default(DRAFT)
+  currency          String              @default("IDR")
+  notes             String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  credit_note_lines credit_note_lines[]
+  customers         Customers           @relation(fields: [customerId], references: [id])
+  invoices          Invoices            @relation(fields: [invoiceId], references: [id])
+}
+
+enum PreparationStatus {
+  WAITING_PREPARATION
+  PREPARING
+  CANCELLED_PREPARATION
+  READY_FOR_DELIVERY
+}
+
+enum StockConfirmationStatus {
+  WAITING_CONFIRMATION
+  STOCK_AVAILABLE
+  INSUFFICIENT_STOCK
+  CONFIRMED
+  REJECTED
+}
+
+enum PaymentType {
+  IMMEDIATE
+  DEFERRED
+}
+
+enum DiscountUnit {
+  AMOUNT
+  PERCENTAGE
+}
+
+enum DeliveryStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  RETURNED
+  CANCELLED
+  PARTIALLY_RETURNED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  DELIVERED
+  PAID
+  OVERDUE
+  CANCELLED
+  COMPLETED
+  RETURNED
+}
+
+enum InvoiceType {
+  PRODUCT
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+enum PaidStatus {
+  PENDING
+  CLEARED
+  CANCELED
+}
+
+enum OrderStatus {
+  NEW
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  PENDING_CONFIRMATION
+  IN_PROCESS
+  CANCELED
+}
+
+enum StockMovementType {
+  PRODUCTION_IN
+  SALES_OUT
+  RETURN_IN
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  OPNAME_ADJUSTMENT
+  SWAP_OUT
+  SWAP_IN
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  SALES
+  WAREHOUSE
+  HELPER
+  KEUANGAN
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum OpnameStatus {
+  IN_PROGRESS
+  COMPLETED
+  RECONCILED
+}
+
+enum TargetType {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum ProductionStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ManagementStockStatus {
+  IN
+  OUT
+  OPNAME_ADJUSTMENT
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  PROCESSING
+  READY_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+enum DiscountType {
+  PER_CRATE
+  OVERALL
+}
+
+enum DiscountValueType {
+  AMOUNT
+  PERCENTAGE
+}
+
+enum CreditNoteStatus {
+  DRAFT
+  POSTED
+  VOID
+}
+
+enum DeliveryItemStatus {
+  PENDING
+  DELIVERED
+  PARTIALLY_RETURNED
+  RETURNED
+  CANCELLED
+}
+
+model Swaps {
+  id             String           @id @default(cuid())
+  invoiceId      String
+  swapDate       DateTime         @default(now())
+  status         SwapStatus       @default(PENDING)
+  notes          String?
+  difference     Float            @default(0)
+  baseTotal      Float            @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  createdBy      String?
+  code           String           @unique
+  invoice        Invoices         @relation(fields: [invoiceId], references: [id])
+  creator        Users?           @relation("SwapCreator", fields: [createdBy], references: [id])
+  swapDetails    SwapDetails[]
+  stockMovements StockMovements[]
+  deliveries     Deliveries[] // Relation to Deliveries
+
+  @@map("swaps")
+}
+
+model SwapDetails {
+  id                      String   @id @default(cuid())
+  swapId                  String
+  oldItemId               String
+  replacementItemId       String
+  oldItemCogs             Float
+  replacementItemCogs     Float
+  oldItemQuantity         Float    @default(1)
+  replacementItemQuantity Float    @default(1)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  swap                    Swaps    @relation(fields: [swapId], references: [id], onDelete: Cascade)
+  oldItem                 Products @relation("OldSwapItem", fields: [oldItemId], references: [id])
+  replacementItem         Products @relation("ReplacementSwapItem", fields: [replacementItemId], references: [id])
+
+  @@map("swap_details")
+}
+
+enum SwapStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER_BANK
+  CHECK
+}
