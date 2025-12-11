@@ -16,16 +16,20 @@ export async function POST(request: Request) {
       notes,
       latitude,
       longitude,
-      photos,
+      // photos, // COMMENTED OUT: Fitur foto dinonaktifkan sementara
     } = data;
 
-    // Validate required fields
+    // DUMMY PHOTO: Menggunakan gambar default karena fitur upload foto dinonaktifkan sementara
+    const photos = ["/logocv.png"];
+
+    // Validate required fields (GPS sekarang opsional)
     if (
       !salesId ||
       (!customerId && !storeName) ||
-      !visitPurpose ||
-      !latitude ||
-      !longitude
+      !visitPurpose
+      // GPS opsional - tidak perlu validasi latitude/longitude
+      // !latitude ||
+      // !longitude
     ) {
       return NextResponse.json(
         {
@@ -64,8 +68,8 @@ export async function POST(request: Request) {
           phone: storePhone?.trim() || null,
           city: storeCity?.trim() || "Kota belum diverifikasi",
           code: `CUST-${Date.now()}`,
-          latitude: latitude,
-          longitude: longitude,
+          latitude: latitude || null, // GPS opsional
+          longitude: longitude || null, // GPS opsional
         },
       });
       finalCustomerId = newCustomer.id;
@@ -79,8 +83,8 @@ export async function POST(request: Request) {
         storeId: null,
         visitPurpose: visitPurpose,
         notes: notes || null,
-        latitude: latitude,
-        longitude: longitude,
+        latitude: latitude || 0, // GPS opsional, default 0
+        longitude: longitude || 0, // GPS opsional, default 0
         photos: photos || [],
         checkInTime: new Date(),
         visitDate: new Date(),

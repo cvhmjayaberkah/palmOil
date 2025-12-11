@@ -180,12 +180,10 @@ export default function SalesFieldPage() {
       const formData = new FormData();
       formData.append("files", file);
 
-
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
-
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -195,7 +193,7 @@ export default function SalesFieldPage() {
 
       if (result.success) {
         // Add uploaded file path to photos state
-        setPhotos((prevPhotos) => [...prevPhotos, ...result.files]);
+        setPhotos(prevPhotos => [...prevPhotos, ...result.files]);
 
         // Reset file input
         if (fileInputRef.current) {
@@ -312,10 +310,11 @@ export default function SalesFieldPage() {
   };
 
   const handleCheckIn = async () => {
-    if (!currentLocation) {
-      toast.error("Lokasi belum didapatkan. Klik tombol GPS terlebih dahulu.");
-      return;
-    }
+    // GPS sekarang opsional - tidak perlu validasi lokasi
+    // if (!currentLocation) {
+    //   toast.error("Lokasi belum didapatkan. Klik tombol GPS terlebih dahulu.");
+    //   return;
+    // }
 
     if (!selectedStore && useExistingStore) {
       toast.error("Pilih toko yang dikunjungi terlebih dahulu.");
@@ -406,9 +405,9 @@ export default function SalesFieldPage() {
               storeCity: useExistingStore ? undefined : storeCity,
               visitPurpose,
               notes,
-              latitude: currentLocation.lat,
-              longitude: currentLocation.lng,
-              photos,
+              latitude: currentLocation?.lat || 0, // GPS opsional, default 0
+              longitude: currentLocation?.lng || 0, // GPS opsional, default 0
+              // photos, // COMMENTED OUT: Fitur foto dinonaktifkan sementara, API menggunakan dummy photo
             }),
           });
 
@@ -470,7 +469,7 @@ export default function SalesFieldPage() {
 
   // Handle customer selection
   const getSelectedStore = () => {
-    return stores.find((store) => store.id === selectedStore);
+    return stores.find(store => store.id === selectedStore);
   };
 
   if (userLoading || !user) {
@@ -579,7 +578,7 @@ export default function SalesFieldPage() {
                         ref={inputRef}
                         type="text"
                         value={storeSearchQuery}
-                        onChange={(e) => handleStoreSearch(e.target.value)}
+                        onChange={e => handleStoreSearch(e.target.value)}
                         onFocus={() => {
                           if (storeSearchQuery.trim() !== "") {
                             setShowStoreDropdown(true);
@@ -641,7 +640,7 @@ export default function SalesFieldPage() {
                               </div>
                             </div>
                           ) : filteredStores.length > 0 ? (
-                            filteredStores.map((store) => (
+                            filteredStores.map(store => (
                               <button
                                 key={store.id}
                                 type="button"
@@ -721,7 +720,7 @@ export default function SalesFieldPage() {
                       <input
                         type="text"
                         value={storeName}
-                        onChange={(e) => setStoreName(e.target.value)}
+                        onChange={e => setStoreName(e.target.value)}
                         placeholder="Masukkan nama toko"
                         className="block w-full px-4 py-3 text-base border-2 border-blue-200/50 dark:border-blue-700/50 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl backdrop-blur-sm transition-all shadow-lg"
                       />
@@ -734,7 +733,7 @@ export default function SalesFieldPage() {
                         type="text"
                         value={storeAddress}
                         required
-                        onChange={(e) => setStoreAddress(e.target.value)}
+                        onChange={e => setStoreAddress(e.target.value)}
                         placeholder="Masukkan alamat toko (wajib)"
                         className="block w-full px-4 py-3 text-base border-2 border-blue-200/50 dark:border-blue-700/50 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl backdrop-blur-sm transition-all shadow-lg"
                       />
@@ -747,7 +746,7 @@ export default function SalesFieldPage() {
                         type="tel"
                         value={storePhone}
                         required
-                        onChange={(e) => setStorePhone(e.target.value)}
+                        onChange={e => setStorePhone(e.target.value)}
                         placeholder="Masukkan nomor telepon (wajib)"
                         className="block w-full px-4 py-3 text-base border-2 border-blue-200/50 dark:border-blue-700/50 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl backdrop-blur-sm transition-all shadow-lg"
                       />
@@ -760,7 +759,7 @@ export default function SalesFieldPage() {
                         type="text"
                         value={storeCity}
                         required
-                        onChange={(e) => setStoreCity(e.target.value)}
+                        onChange={e => setStoreCity(e.target.value)}
                         placeholder="Masukkan nama kota (wajib)"
                         className="block w-full px-4 py-3 text-base border-2 border-blue-200/50 dark:border-blue-700/50 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl backdrop-blur-sm transition-all shadow-lg"
                       />
@@ -782,7 +781,7 @@ export default function SalesFieldPage() {
                 </label>
                 <select
                   value={visitPurpose}
-                  onChange={(e) => setVisitPurpose(e.target.value)}
+                  onChange={e => setVisitPurpose(e.target.value)}
                   className="block w-full px-4 py-4 text-base border-2 border-purple-200/50 dark:border-purple-700/50 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 rounded-xl backdrop-blur-sm transition-all shadow-lg"
                 >
                   <option value="">Pilih tujuan kunjungan</option>
@@ -843,8 +842,8 @@ export default function SalesFieldPage() {
                 )}
               </div>
 
-              {/* Photos */}
-              <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/30 dark:from-amber-900/20 dark:to-orange-900/10 backdrop-blur-sm rounded-2xl p-6 border border-amber-100/50 dark:border-amber-800/30">
+              {/* Photos - COMMENTED OUT: Fitur foto dinonaktifkan sementara, akan digunakan kembali nanti */}
+              {/* <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/30 dark:from-amber-900/20 dark:to-orange-900/10 backdrop-blur-sm rounded-2xl p-6 border border-amber-100/50 dark:border-amber-800/30">
                 <label className="flex items-center text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   <Camera className="w-5 h-5 mr-3 text-amber-500" />
                   Foto Kunjungan
@@ -904,7 +903,6 @@ export default function SalesFieldPage() {
                         {photos.map((photo, index) => (
                           <div key={index} className="relative group">
                             <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={photo}
                                 alt={`Photo ${index + 1}`}
@@ -921,7 +919,7 @@ export default function SalesFieldPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </div> */}
 
               {/* Notes */}
               <div className="bg-gradient-to-br from-slate-50/50 to-gray-50/30 dark:from-slate-900/20 dark:to-gray-900/10 backdrop-blur-sm rounded-2xl p-6 border border-slate-100/50 dark:border-slate-800/30">
@@ -931,7 +929,7 @@ export default function SalesFieldPage() {
                 </label>
                 <textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={e => setNotes(e.target.value)}
                   rows={4}
                   className="block w-full px-4 py-3 border-2 border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-white rounded-xl placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 backdrop-blur-sm transition-all shadow-lg resize-none"
                   placeholder="Tuliskan catatan mengenai kunjungan ini..."
@@ -944,7 +942,8 @@ export default function SalesFieldPage() {
                   type="button"
                   onClick={handleCheckIn}
                   disabled={
-                    !currentLocation ||
+                    // GPS sekarang opsional
+                    // !currentLocation ||
                     (useExistingStore
                       ? !selectedStore
                       : !storeName ||
@@ -959,17 +958,13 @@ export default function SalesFieldPage() {
                   <CheckCircle className="h-6 w-6 mr-3" />
                   {isSaving ? "Menyimpan..." : "Check-in Kunjungan"}
                 </button>
-                {(!currentLocation ||
-                  (useExistingStore
-                    ? !selectedStore
-                    : !storeName ||
-                      !storeAddress ||
-                      !storePhone ||
-                      !storeCity) ||
+                {((useExistingStore
+                  ? !selectedStore
+                  : !storeName || !storeAddress || !storePhone || !storeCity) ||
                   !visitPurpose) &&
                   !isSaving && (
                     <p className="mt-3 text-sm text-gray-500 dark:text-gray-400 text-center">
-                      * Lengkapi semua field yang wajib diisi
+                      * Lengkapi semua field yang wajib diisi (GPS opsional)
                     </p>
                   )}
               </div>
