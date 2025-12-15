@@ -272,6 +272,46 @@ export default function OrdersPage() {
     return Math.round(subtotal - orderDiscountAmount + shippingCost);
   };
 
+  // Check if any item has insufficient stock
+  const hasInsufficientStock = () => {
+    return items.some((item) => {
+      if (!item.productName || !item.crates || item.crates === 0) return false;
+      
+      const product = products.find((p) => p.name === item.productName);
+      if (!product) return false;
+      
+      // currentStock is already in crates
+      const inputCrates = item.crates || 0;
+      
+      // Check if input crates exceed available stock
+      return inputCrates > product.currentStock;
+    });
+  };
+
+  // Get insufficient stock items for display
+  const getInsufficientStockItems = () => {
+    return items
+      .map((item) => {
+        if (!item.productName || !item.crates || item.crates === 0) return null;
+        
+        const product = products.find((p) => p.name === item.productName);
+        if (!product) return null;
+        
+        // currentStock is already in crates
+        const inputCrates = item.crates || 0;
+        
+        if (inputCrates > product.currentStock) {
+          return {
+            productName: item.productName,
+            available: product.currentStock,
+            required: inputCrates,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  };
+
   const handleSubmitOrder = async () => {
     // Validation
     if (!user) {
@@ -955,8 +995,8 @@ export default function OrdersPage() {
                                       {(
                                         product.sellingPrice || 0
                                       ).toLocaleString("id-ID")}{" "}
-                                      ({product.unit}) - Stock:{" "}
-                                      {product.currentStock}
+                                      ({product.unit}) - Stok:{" "}
+                                      {product.currentStock} krat
                                     </option>
                                   ))}
                               </select>
@@ -1282,22 +1322,66 @@ export default function OrdersPage() {
                 </div>
               </div>
 
+              {/* Stock Warning */}
+              {hasInsufficientStock() && (
+                <div className="relative">
+                  <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-xl p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <svg
+                          className="h-6 w-6 text-red-600 dark:text-red-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-sm font-bold text-red-800 dark:text-red-300 mb-2">
+                          ⚠️ Stok Tidak Mencukupi!
+                        </h3>
+                        <div className="text-sm text-red-700 dark:text-red-400 space-y-1">
+                          {getInsufficientStockItems().map((item: any, idx: number) => (
+                            <div key={idx} className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                              <span className="font-medium">{item.productName}:</span>
+                              <span>
+                                Tersedia: <strong>{item.available} krat</strong>, 
+                                Dibutuhkan: <strong className="text-red-600 dark:text-red-500">{item.required} krat</strong>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-red-600 dark:text-red-500 mt-2">
+                          Silakan kurangi jumlah order atau pilih produk lain.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Submit Button */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={handleSubmitOrder}
-                  disabled={isSaving || calculateTotal() === 0}
+                  disabled={isSaving || calculateTotal() === 0 || hasInsufficientStock()}
                   className="w-full group relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-blue-700 hover:from-blue-700 hover:via-purple-700 hover:to-blue-800 text-white font-bold py-4 px-6 rounded-2xl shadow-2xl hover:shadow-3xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="relative flex items-center justify-center space-x-3">
                     <ShoppingCart className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
                     <span className="text-lg">
-                      {isSaving ? "Menyimpan Order..." : "Buat Order Sekarang"}
+                      {isSaving ? "Menyimpan Order..." : hasInsufficientStock() ? "Stok Tidak Cukup" : "Buat Order Sekarang"}
                     </span>
                   </div>
-                  {!isSaving && (
+                  {!isSaving && !hasInsufficientStock() && (
                     <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 via-pink-400 to-yellow-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
                   )}
                 </button>
