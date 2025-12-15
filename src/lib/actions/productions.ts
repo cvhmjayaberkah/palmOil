@@ -15,7 +15,6 @@ export type ProductionLogItemFormData = {
   productId: string;
   quantity: number;
   notes?: string;
-  // salaryPerBottle removed - now fetched from Products model
 };
 
 export type ProductionLogFormData = {
@@ -30,7 +29,6 @@ export type ProductionLogWithDetails = Productions & {
   producedBy: {
     id: string;
     name: string;
-    salaryPerBottle?: number;
   };
   items: (ProductionItems & {
     product: {
@@ -55,7 +53,12 @@ export async function getProductions(): Promise<ProductionLogWithDetails[]> {
           },
         },
         items: {
-          include: {
+          select: {
+            id: true,
+            quantity: true,
+            productionLogId: true,
+            productId: true,
+            notes: true,
             product: {
               select: {
                 id: true,
@@ -73,7 +76,7 @@ export async function getProductions(): Promise<ProductionLogWithDetails[]> {
       },
     });
 
-    return productions;
+    return productions as ProductionLogWithDetails[];
   } catch (error) {
     console.error("Error fetching production logs:", error);
     throw new Error("Failed to fetch production logs");
@@ -95,7 +98,12 @@ export async function getProductionLogById(
           },
         },
         items: {
-          include: {
+          select: {
+            id: true,
+            quantity: true,
+            productionLogId: true,
+            productId: true,
+            notes: true,
             product: {
               select: {
                 id: true,
@@ -110,7 +118,7 @@ export async function getProductionLogById(
       },
     });
 
-    return productionLog;
+    return productionLog as ProductionLogWithDetails | null;
   } catch (error) {
     console.error("Error fetching production log:", error);
     throw new Error("Failed to fetch production log");
@@ -123,7 +131,7 @@ export async function createProductionLog(data: ProductionLogFormData) {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const result = await db.$transaction(async (tx) => {
+      const result = await db.$transaction(async tx => {
         // Get current timestamp for more uniqueness
         const now = new Date();
         const currentMonth = (now.getMonth() + 1).toString().padStart(2, "0");
@@ -192,23 +200,14 @@ export async function createProductionLog(data: ProductionLogFormData) {
         });
 
         // Create production log items and update stock
-        let totalSalaryExpense = 0;
-        const salaryItems: {
-          description: string;
-          quantity: number;
-          price: number;
-          totalPrice: number;
-        }[] = [];
-
         for (const item of data.items) {
-          // Get current product stock and product details including salaryPerBottle
+          // Get current product stock and product details
           const product = await tx.products.findUnique({
             where: { id: item.productId },
             select: {
               currentStock: true,
               name: true,
               bottlesPerCrate: true,
-              salaryPerBottle: true,
             },
           });
 
@@ -219,7 +218,7 @@ export async function createProductionLog(data: ProductionLogFormData) {
           const previousStock = product.currentStock;
           const newStock = previousStock + item.quantity;
 
-          // Create production log item (salaryPerBottle removed from here)
+          // Create production log item
           const productionLogItem = await tx.productionItems.create({
             data: {
               quantity: item.quantity,
@@ -249,53 +248,6 @@ export async function createProductionLog(data: ProductionLogFormData) {
               notes: item.notes || null,
             },
           });
-
-          // Calculate salary expense for this item using product's salaryPerBottle
-          const salaryPerBottle = product.salaryPerBottle || 0;
-          if (salaryPerBottle > 0 && item.quantity > 0) {
-            const bottlesPerCrate = product.bottlesPerCrate || 24;
-            // If item.quantity represents crates produced
-            const totalCrates = item.quantity;
-            const totalBottlesProduced = totalCrates * bottlesPerCrate;
-            const itemSalaryTotal = totalBottlesProduced * salaryPerBottle;
-
-            totalSalaryExpense += itemSalaryTotal;
-
-            salaryItems.push({
-              description: `Gaji produksi ${product.name}`,
-              quantity: totalBottlesProduced, // Total bottles from crates
-              price: salaryPerBottle,
-              totalPrice: itemSalaryTotal,
-            });
-          }
-        }
-
-        // Create salary expense transaction if there's any salary to record
-        if (totalSalaryExpense > 0) {
-          const salaryTransaction = await tx.transactions.create({
-            data: {
-              transactionDate: data.productionDate,
-              type: "EXPENSE",
-              amount: totalSalaryExpense,
-              description: `Gaji Karyawan Produksi - ${finalCode}`, // Use generated code
-              category: "Beban Gaji",
-              reference: finalCode, // Use generated code as reference
-              userId: data.producedById,
-            },
-          });
-
-          // Create transaction items for detailed salary breakdown
-          for (const salaryItem of salaryItems) {
-            await tx.transactionItems.create({
-              data: {
-                transactionId: salaryTransaction.id,
-                description: salaryItem.description,
-                quantity: salaryItem.quantity,
-                price: salaryItem.price,
-                totalPrice: salaryItem.totalPrice,
-              },
-            });
-          }
         }
 
         return productionLog;
@@ -312,7 +264,7 @@ export async function createProductionLog(data: ProductionLogFormData) {
         error.message.includes("code") &&
         attempt < maxRetries
       ) {
-        await new Promise((resolve) => setTimeout(resolve, 100 * attempt)); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 100 * attempt)); // Exponential backoff
         continue; // Retry with new code
       }
 
@@ -342,7 +294,7 @@ export async function updateProductionLog(
   data: ProductionLogFormData
 ) {
   try {
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async tx => {
       // Get existing production log with items
       const existingLog = await tx.productions.findUnique({
         where: { id },
@@ -377,15 +329,6 @@ export async function updateProductionLog(
         });
       }
 
-      // Delete old salary transactions related to this production log
-      await tx.transactions.deleteMany({
-        where: {
-          reference: existingLog.code, // Use production code for reference
-          type: "EXPENSE",
-          category: "Beban Gaji",
-        },
-      });
-
       // Delete existing items
       await tx.productionItems.deleteMany({
         where: { productionLogId: id },
@@ -402,14 +345,6 @@ export async function updateProductionLog(
       });
 
       // Create new production log items and update stock
-      let totalSalaryExpense = 0;
-      const salaryItems: {
-        description: string;
-        quantity: number;
-        price: number;
-        totalPrice: number;
-      }[] = [];
-
       for (const item of data.items) {
         const product = await tx.products.findUnique({
           where: { id: item.productId },
@@ -417,7 +352,6 @@ export async function updateProductionLog(
             currentStock: true,
             name: true,
             bottlesPerCrate: true,
-            salaryPerBottle: true,
           },
         });
 
@@ -455,53 +389,6 @@ export async function updateProductionLog(
             notes: item.notes || null,
           },
         });
-
-        // Calculate salary expense for this item using product's salaryPerBottle
-        const salaryPerBottle = product.salaryPerBottle || 0;
-        if (salaryPerBottle > 0 && item.quantity > 0) {
-          const bottlesPerCrate = product.bottlesPerCrate || 24;
-          // If item.quantity represents crates produced
-          const totalCrates = item.quantity;
-          const totalBottlesProduced = totalCrates * bottlesPerCrate;
-          const itemSalaryTotal = totalBottlesProduced * salaryPerBottle;
-
-          totalSalaryExpense += itemSalaryTotal;
-
-          salaryItems.push({
-            description: `Gaji produksi ${product.name}`,
-            quantity: totalBottlesProduced, // Total bottles from crates
-            price: salaryPerBottle,
-            totalPrice: itemSalaryTotal,
-          });
-        }
-      }
-
-      // Create salary expense transaction if there's any salary to record
-      if (totalSalaryExpense > 0) {
-        const salaryTransaction = await tx.transactions.create({
-          data: {
-            transactionDate: data.productionDate,
-            type: "EXPENSE",
-            amount: totalSalaryExpense,
-            description: `Gaji Karyawan Produksi - ${data.code}`,
-            category: "Beban Gaji",
-            reference: data.code, // Use production code as reference
-            userId: data.producedById,
-          },
-        });
-
-        // Create transaction items for detailed salary breakdown
-        for (const salaryItem of salaryItems) {
-          await tx.transactionItems.create({
-            data: {
-              transactionId: salaryTransaction.id,
-              description: salaryItem.description,
-              quantity: salaryItem.quantity,
-              price: salaryItem.price,
-              totalPrice: salaryItem.totalPrice,
-            },
-          });
-        }
       }
 
       return updatedLog;
@@ -526,7 +413,7 @@ export async function updateProductionLog(
 // Delete production log
 export async function deleteProductionLog(id: string) {
   try {
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async tx => {
       // Get production log with items
       const productionLog = await tx.productions.findUnique({
         where: { id },
@@ -558,15 +445,6 @@ export async function deleteProductionLog(id: string) {
           where: { productionItemsId: item.id },
         });
       }
-
-      // Delete salary transactions related to this production log
-      await tx.transactions.deleteMany({
-        where: {
-          reference: productionLog.code, // Use production code for reference
-          type: "EXPENSE",
-          category: "Beban Gaji",
-        },
-      });
 
       // Delete production log (items will be cascade deleted)
       await tx.productions.delete({

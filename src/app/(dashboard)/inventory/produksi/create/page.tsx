@@ -27,7 +27,6 @@ interface ProductionLogItemFormData {
   productId: string;
   quantity: number;
   notes?: string;
-  // salaryPerBottle removed - now fetched from Products model
 }
 
 interface ProductionLogFormData {
@@ -96,7 +95,7 @@ export default function CreateProductionLogPage() {
         const products = await getAvailableProducts();
 
         setAvailableProducts(products);
-        setFormData((prevData) => ({
+        setFormData(prevData => ({
           ...prevData,
           producedById: user?.id || prevData.producedById,
         }));
@@ -183,7 +182,7 @@ export default function CreateProductionLogPage() {
       field !== "producedById" &&
       formErrors[field as keyof ProductionLogFormErrors]
     ) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, [field]: undefined }));
+      setFormErrors(prevErrors => ({ ...prevErrors, [field]: undefined }));
     }
   };
 
@@ -244,11 +243,10 @@ export default function CreateProductionLogPage() {
         productionDate: new Date(formData.productionDate),
         notes: formData.notes || undefined,
         producedById: formData.producedById,
-        items: formData.items.map((item) => ({
+        items: formData.items.map(item => ({
           productId: item.productId,
           quantity: Number(item.quantity),
           notes: item.notes || undefined,
-          // salaryPerBottle removed - now fetched from Products model in backend
         })),
       });
 
@@ -259,7 +257,7 @@ export default function CreateProductionLogPage() {
         const errorMessage = result.error || "Gagal membuat production log";
         toast.error(errorMessage);
         // Set general error for form validation
-        setFormErrors((prevErrors) => ({
+        setFormErrors(prevErrors => ({
           ...prevErrors,
           // Remove code error handling since code is auto-generated
           producedById: result.error, // Example if producedById is causing an error
@@ -268,7 +266,7 @@ export default function CreateProductionLogPage() {
     } catch (error) {
       console.error("Terjadi kesalahan saat membuat production log:", error);
       toast.error("Terjadi kesalahan yang tidak terduga.");
-      setFormErrors((prevErrors) => ({
+      setFormErrors(prevErrors => ({
         ...prevErrors,
         general: "Terjadi kesalahan yang tidak terduga.", // Tambahkan field error general jika belum ada
       }));
@@ -323,7 +321,7 @@ export default function CreateProductionLogPage() {
                   ? new Date(formData.productionDate)
                   : null
               }
-              onChange={(date) => {
+              onChange={date => {
                 const dateString = date ? date.toISOString().split("T")[0] : "";
                 handleInputChange("productionDate", dateString);
               }}
@@ -338,7 +336,7 @@ export default function CreateProductionLogPage() {
             name="notes"
             placeholder="Masukkan catatan produksi (opsional)"
             value={formData.notes}
-            onChange={(e) => handleInputChange("notes", e.target.value)}
+            onChange={e => handleInputChange("notes", e.target.value)}
             errorMessage={formErrors.notes}
             rows={3}
           />
@@ -387,7 +385,7 @@ export default function CreateProductionLogPage() {
                 >
                   <select
                     value={item.productId}
-                    onChange={(e) =>
+                    onChange={e =>
                       handleItemChange(index, "productId", e.target.value)
                     }
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white ${
@@ -397,7 +395,7 @@ export default function CreateProductionLogPage() {
                     }`}
                   >
                     <option value="">Pilih Produk</option>
-                    {availableProducts.map((product) => (
+                    {availableProducts.map(product => (
                       <option key={product.id} value={product.id}>
                         {product.name}
                       </option>
@@ -415,13 +413,11 @@ export default function CreateProductionLogPage() {
                     value={
                       item.productId
                         ? `${
-                            availableProducts.find(
-                              (p) => p.id === item.productId
-                            )?.currentStock || 0
+                            availableProducts.find(p => p.id === item.productId)
+                              ?.currentStock || 0
                           } ${
-                            availableProducts.find(
-                              (p) => p.id === item.productId
-                            )?.unit || ""
+                            availableProducts.find(p => p.id === item.productId)
+                              ?.unit || ""
                           }`
                         : "-"
                     }
@@ -441,7 +437,7 @@ export default function CreateProductionLogPage() {
                     min="0"
                     step="0.01"
                     value={item.quantity.toString()}
-                    onChange={(e) =>
+                    onChange={e =>
                       handleItemChange(
                         index,
                         "quantity",

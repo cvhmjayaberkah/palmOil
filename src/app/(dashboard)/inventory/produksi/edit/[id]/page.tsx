@@ -43,7 +43,6 @@ interface ProductionLogFormErrors {
     [key: number]: {
       productId?: string;
       quantity?: string;
-      salaryPerBottle?: string;
     };
   };
 }
@@ -81,7 +80,7 @@ export default function EditProductionLogPage() {
     productionDate: "",
     notes: "",
     producedById: "",
-    items: [{ productId: "", quantity: 0, salaryPerBottle: 0 }],
+    items: [{ productId: "", quantity: 0 }],
   });
 
   const [formErrors, setFormErrors] = useState<ProductionLogFormErrors>({});
@@ -114,10 +113,9 @@ export default function EditProductionLogPage() {
             .split("T")[0],
           notes: productionLog.notes || "",
           producedById: productionLog.producedById,
-          items: productionLog.items.map((item) => ({
+          items: productionLog.items.map(item => ({
             productId: item.productId,
             quantity: item.quantity,
-            salaryPerBottle: (item as any).salaryPerBottle || 0,
           })),
         });
       } catch (error) {
@@ -158,7 +156,6 @@ export default function EditProductionLogPage() {
         [key: number]: {
           productId?: string;
           quantity?: string;
-          salaryPerBottle?: string;
         };
       } = {};
 
@@ -166,7 +163,6 @@ export default function EditProductionLogPage() {
         const itemError: {
           productId?: string;
           quantity?: string;
-          salaryPerBottle?: string;
         } = {};
 
         if (!item.productId) {
@@ -175,11 +171,6 @@ export default function EditProductionLogPage() {
 
         if (!item.quantity || item.quantity <= 0) {
           itemError.quantity = "Quantity harus lebih dari 0";
-        }
-
-        if (!item.salaryPerBottle || item.salaryPerBottle < 0) {
-          itemError.salaryPerBottle =
-            "Gaji per botol harus lebih dari atau sama dengan 0";
         }
 
         if (Object.keys(itemError).length > 0) {
@@ -203,7 +194,7 @@ export default function EditProductionLogPage() {
     setFormData({ ...formData, [field]: value });
 
     if (formErrors[field]) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, [field]: undefined }));
+      setFormErrors(prevErrors => ({ ...prevErrors, [field]: undefined }));
     }
   };
 
@@ -231,10 +222,7 @@ export default function EditProductionLogPage() {
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [
-        ...formData.items,
-        { productId: "", quantity: 0, salaryPerBottle: 0 },
-      ],
+      items: [...formData.items, { productId: "", quantity: 0 }],
     });
   };
 
@@ -288,11 +276,10 @@ export default function EditProductionLogPage() {
         productionDate: new Date(formData.productionDate),
         notes: formData.notes || undefined,
         producedById: formData.producedById,
-        items: formData.items.map((item) => ({
+        items: formData.items.map(item => ({
           productId: item.productId,
           quantity: Number(item.quantity),
           notes: item.notes || undefined,
-          salaryPerBottle: Number(item.salaryPerBottle),
         })),
       });
 
@@ -302,7 +289,7 @@ export default function EditProductionLogPage() {
       } else {
         const errorMessage = result.error || "Gagal memperbarui production log";
         toast.error(errorMessage);
-        setFormErrors((prevErrors) => ({
+        setFormErrors(prevErrors => ({
           ...prevErrors,
           code: result.error?.includes("duplicate")
             ? "Kode ini sudah ada. Harap coba lagi."
@@ -316,7 +303,7 @@ export default function EditProductionLogPage() {
         error
       );
       toast.error("Terjadi kesalahan yang tidak terduga.");
-      setFormErrors((prevErrors) => ({
+      setFormErrors(prevErrors => ({
         ...prevErrors,
         general: "Terjadi kesalahan yang tidak terduga.",
       }));
@@ -325,7 +312,7 @@ export default function EditProductionLogPage() {
     }
   };
 
-  const userOptions = availableUsers.map((user) => ({
+  const userOptions = availableUsers.map(user => ({
     value: user.id,
     label: `${user.name} (${user.role})`,
   }));
@@ -383,7 +370,7 @@ export default function EditProductionLogPage() {
                   ? new Date(formData.productionDate)
                   : null
               }
-              onChange={(date) => {
+              onChange={date => {
                 const dateString = date ? date.toISOString().split("T")[0] : "";
                 handleInputChange("productionDate", dateString);
               }}
@@ -396,7 +383,7 @@ export default function EditProductionLogPage() {
         <FormField label="Dibuat Oleh" errorMessage={formErrors.producedById}>
           <select
             value={formData.producedById}
-            onChange={(e) => handleInputChange("producedById", e.target.value)}
+            onChange={e => handleInputChange("producedById", e.target.value)}
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white ${
               formErrors.producedById
                 ? "border-red-500 dark:border-red-500 bg-red-50 dark:bg-red-900/10"
@@ -404,7 +391,7 @@ export default function EditProductionLogPage() {
             }`}
           >
             <option value="">Pilih User</option>
-            {userOptions.map((user) => (
+            {userOptions.map(user => (
               <option key={user.value} value={user.value}>
                 {user.label}
               </option>
@@ -417,7 +404,7 @@ export default function EditProductionLogPage() {
             name="notes"
             placeholder="Masukkan catatan produksi (opsional)"
             value={formData.notes}
-            onChange={(e) => handleInputChange("notes", e.target.value)}
+            onChange={e => handleInputChange("notes", e.target.value)}
             errorMessage={formErrors.notes}
             rows={3}
           />
@@ -465,7 +452,7 @@ export default function EditProductionLogPage() {
                 >
                   <select
                     value={item.productId}
-                    onChange={(e) =>
+                    onChange={e =>
                       handleItemChange(index, "productId", e.target.value)
                     }
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white ${
@@ -475,7 +462,7 @@ export default function EditProductionLogPage() {
                     }`}
                   >
                     <option value="">Pilih Produk</option>
-                    {availableProducts.map((product) => (
+                    {availableProducts.map(product => (
                       <option key={product.id} value={product.id}>
                         {product.name} ({product.unit}) - Stock:{" "}
                         {product.currentStock}
@@ -494,7 +481,7 @@ export default function EditProductionLogPage() {
                     min="0"
                     step="0.01"
                     value={item.quantity.toString()}
-                    onChange={(e) =>
+                    onChange={e =>
                       handleItemChange(
                         index,
                         "quantity",
@@ -502,29 +489,6 @@ export default function EditProductionLogPage() {
                       )
                     }
                     errorMessage={formErrors.items?.[index]?.quantity}
-                    placeholder="0"
-                  />
-                </FormField>
-
-                <FormField
-                  label="Gaji Karyawan/Botol (Rp)"
-                  errorMessage={formErrors.items?.[index]?.salaryPerBottle}
-                >
-                  <Input
-                    type="number"
-                    name={`salaryPerBottle-${index}`}
-                    min="0"
-                    step="1"
-                    value={item.salaryPerBottle?.toString() || ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      handleItemChange(
-                        index,
-                        "salaryPerBottle",
-                        value === "" ? 0 : parseFloat(value)
-                      );
-                    }}
-                    errorMessage={formErrors.items?.[index]?.salaryPerBottle}
                     placeholder="0"
                   />
                 </FormField>

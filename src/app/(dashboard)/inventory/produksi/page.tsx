@@ -57,7 +57,7 @@ const columns = [
       if (!items || items.length === 0) return "0";
 
       let totalCrates = 0;
-      items.forEach((item) => {
+      items.forEach(item => {
         // If item.quantity represents crates produced
         totalCrates += item.quantity || 0;
       });
@@ -73,7 +73,7 @@ const columns = [
       if (!items || items.length === 0) return "0";
 
       let totalBottles = 0;
-      items.forEach((item) => {
+      items.forEach(item => {
         const bottlesPerCrate = item?.product?.bottlesPerCrate || 24;
         // If item.quantity represents crates produced
         const itemCrates = item.quantity || 0;
@@ -115,7 +115,7 @@ export default function ManajemenStokPage() {
       return dateA.getTime() - dateB.getTime();
     });
 
-    sortedProductions.forEach((production) => {
+    sortedProductions.forEach(production => {
       const productionDate = formatDate(new Date(production.productionDate));
       const productionCode = production.code || "-";
 
@@ -124,10 +124,8 @@ export default function ManajemenStokPage() {
           const bottlesPerCrate = item?.product?.bottlesPerCrate || 24;
           // If item.quantity represents crates produced
           const totalCrates = item.quantity || 0;
-          const salaryPerBottle = item.salaryPerBottle || 0;
-          // Calculate total salary: jumlah krat * botol per krat * gaji per botol
+          // Calculate total bottles produced
           const totalBottlesProduced = totalCrates * bottlesPerCrate;
-          const totalSalary = totalBottlesProduced * salaryPerBottle;
 
           processedData.push({
             kodeProduksi: productionCode,
@@ -137,8 +135,6 @@ export default function ManajemenStokPage() {
             namaBarang: item?.product?.name || "-",
             totalKrat: totalCrates,
             totalBotol: totalBottlesProduced, // Use actual bottles from complete crates
-            gajiPerBotol: salaryPerBottle,
-            totalGaji: totalSalary,
           });
         });
       } else {
@@ -151,8 +147,6 @@ export default function ManajemenStokPage() {
           namaBarang: "-",
           totalKrat: 0,
           totalBotol: 0,
-          gajiPerBotol: 0,
-          totalGaji: 0,
         });
       }
     });
@@ -181,7 +175,7 @@ export default function ManajemenStokPage() {
       let periodText = "Semua Data";
       if (dataToProcess.length > 0) {
         const dates = dataToProcess
-          .map((item) => new Date(item.productionDate))
+          .map(item => new Date(item.productionDate))
           .sort((a, b) => a.getTime() - b.getTime());
         const startDate = dates[0];
         const endDate = dates[dates.length - 1];
@@ -235,7 +229,6 @@ export default function ManajemenStokPage() {
         item.namaBarang,
         item.totalKrat.toLocaleString(),
         item.totalBotol.toLocaleString(),
-        `Rp ${item.gajiPerBotol.toLocaleString()}`,
       ]);
 
       // Add simple table
@@ -249,7 +242,6 @@ export default function ManajemenStokPage() {
             "Nama Barang",
             "Total Krat",
             "Total Botol",
-            "Gaji per Botol",
           ],
         ],
         body: tableData,
@@ -279,7 +271,6 @@ export default function ManajemenStokPage() {
           4: { cellWidth: 35, halign: "left" }, // Nama Barang
           5: { cellWidth: 18, halign: "right" }, // Total Krat
           6: { cellWidth: 18, halign: "right" }, // Total Botol
-          7: { cellWidth: 25, halign: "right" }, // Gaji per Botol
         },
         margin: { left: 20, right: 20 },
         tableWidth: "auto",
@@ -293,10 +284,6 @@ export default function ManajemenStokPage() {
       );
       const totalBotol = processedData.reduce(
         (sum, item) => sum + item.totalBotol,
-        0
-      );
-      const totalGajiKaryawan = processedData.reduce(
-        (sum, item) => sum + item.totalGaji,
         0
       );
 
@@ -325,11 +312,6 @@ export default function ManajemenStokPage() {
         `Total Botol Diproduksi: ${totalBotol.toLocaleString()} botol`,
         20,
         summaryY + 6
-      );
-      doc.text(
-        `Total Gaji Karyawan: Rp ${totalGajiKaryawan.toLocaleString()}`,
-        20,
-        summaryY + 12
       );
 
       // Add simple footer
